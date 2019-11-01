@@ -1,0 +1,143 @@
+// Written in VB.Net
+// Reaches out to an external website and grabs varying JSON data on stocks and returns them in the specified boxes in the GUI (not included here)
+
+Imports System
+Imports System.IO
+Imports System.Net
+Imports System.Text
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
+
+
+Public Class Form1
+    Dim strStockSymbol As String
+    Dim dblOpen As Double
+    Dim dblHigh As Double
+    Dim dblLow As Double
+    Dim dblClose As Double
+    Dim strFinalURL As String
+    Dim strMonth As String
+    Dim strDay As String
+    Dim strYear As String
+    Dim strDate As String
+
+    Dim request As HttpWebRequest
+    Dim response As HttpWebResponse = Nothing
+    Dim reader As StreamReader
+
+    Private Sub btnChoose_Click(sender As Object, e As EventArgs) Handles btnChoose.Click
+        If (Not cmbStock.Text = "-Choose a Stock-" And txtStock.Text = "") Then
+            strStockSymbol = stockChoice(cmbStock.Text)
+        ElseIf ((cmbStock.Text = "-Choose a Stock-" Or cmbStock.Text = "-Set here for custom entry-") And (Not txtStock.Text = ""))
+            strStockSymbol = txtStock.Text
+        Else
+            MessageBox.Show("Please only choose a stock OR enter one, not both.", "Too many inputs", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            txtStock.Clear()
+        End If
+
+        getStockInfo(strStockSymbol)
+
+    End Sub
+
+    Function stockChoice(ByVal strStockChoice As String)
+        Dim strSymbol As String
+
+        strSymbol = ""
+
+        If (strStockChoice.Equals("Amazon")) Then
+            strSymbol = "AMZN"
+        ElseIf (strStockChoice.Equals("Microsoft"))
+            strSymbol = "MSFT"
+        ElseIf (strStockChoice.Equals("Sony"))
+            strSymbol = "SNE"
+        ElseIf (strStockChoice.Equals("Apple"))
+            strSymbol = "AAPL"
+        ElseIf (strStockChoice.Equals("Facebook"))
+            strSymbol = "FB"
+        ElseIf (strStockChoice.Equals("Walmart"))
+            strSymbol = "WMT"
+        ElseIf (strStockChoice.Equals("Verizon Wireless"))
+            strSymbol = "VZ"
+        ElseIf (strStockChoice.Equals("AT&T"))
+            strSymbol = "T"
+        ElseIf (strStockChoice.Equals("Coca-Cola"))
+            strSymbol = "KO"
+        ElseIf (strStockChoice.Equals("Cisco"))
+            strSymbol = "CSCO"
+        ElseIf (strStockChoice.Equals("Walt Disney Company"))
+            strSymbol = "DIS"
+        ElseIf (strStockChoice.Equals("McDonald's"))
+            strSymbol = "MCD"
+        ElseIf (strStockChoice.Equals("Netflix"))
+            strSymbol = "NFLX"
+        ElseIf (strStockChoice.Equals("NVIDIA"))
+            strSymbol = "NVDA"
+        End If
+
+        Return strSymbol
+    End Function
+
+    Private Sub getStockInfo(ByVal strStockSymbol As String)
+        strFinalURL = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + strStockSymbol + "&outputsize=full&apikey=4T2EMFD2UQF4NH3B"
+        request = DirectCast(WebRequest.Create(strFinalURL), HttpWebRequest)
+
+        response = DirectCast(request.GetResponse(), HttpWebResponse)
+
+        Dim jsonStream = response.GetResponseStream()
+
+        Dim jsonReader = New StreamReader(jsonStream)
+
+        Dim rawresp As String
+        rawresp = jsonReader.ReadToEnd()
+
+        ' Dim array As JArray = JArray.Parse(rawresp)
+        'Dim first = array(0)
+        ' Dim stockPrice = first("2. high")
+
+        Dim json As JObject = JObject.Parse(rawresp)
+        '//Dim test As Decimal = json.SelectToken("Time Series (Daily).2018-11-13.2. high")
+        Dim timeSeriesData = json.Last
+        Dim prices = timeSeriesData.First
+
+        For Each price In prices
+            If (DirectCast(price, Newtonsoft.Json.Linq.JProperty).Name = strDate) Then
+                Dim priceObject = price.First
+                dblOpen = priceObject("1. open")
+                dblHigh = priceObject("2. high")
+                dblLow = priceObject("3. low")
+                dblClose = priceObject("4. close")
+
+                txtOpen.Text = String.Format("{0:C}", dblOpen)
+                txtHigh.Text = String.Format("{0:C}", dblHigh)
+                txtLow.Text = String.Format("{0:C}", dblLow)
+                txtClose.Text = String.Format("{0:C}", dblClose)
+                GoTo leave
+            Else
+                MessageBox.Show("Stock or stock information for the specified date not found. Please enter a NASDAQ stock or another date", "Stock Info Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                txtOpen.Clear()
+                txtHigh.Clear()
+                txtLow.Clear()
+                txtClose.Clear()
+                GoTo leave
+            End If
+        Next
+
+leave:
+    End Sub
+
+    Private Sub btnSetDate_Click(sender As Object, e As EventArgs) Handles btnSetDate.Click
+        If (Not txtMonth.Text = "") Then
+            strMonth = txtMonth.Text
+        End If
+
+        If (Not txtDay.Text = "") Then
+            strDay = txtDay.Text
+        End If
+
+        If (Not txtYear.Text = "") Then
+            strYear = txtYear.Text
+        End If
+
+        strDate = strYear + "-" + strMonth + "-" + strDay
+    End Sub
+End Class
